@@ -17,10 +17,38 @@ PART 2: Pre-processing
 '''
 
 # import the necessary packages
-
+import pandas as pd
 
 
 # Your code here
+def preprocess():
+    #load into dfs
+    pred_universe = pd.read_csv('data/pred_universe_raw.csv')
+    arrest_events = pd.read_csv('data/arrest_events_raw.csv')
 
+    #perform join
+    df_arrests = pd.merge(pred_universe, arrest_events, on='person_id', how='outer')
 
+    #create column
+    df_arrests['y'] = df_arrests.apply(lambda row: 1 if ((row['arrest_date_event'] > row['arrest_date_univ']) & (row['arrest_date_event'] <= row['arrest_date_univ'] + pd.Timedelta(days=365)) & (row['charge_degree'] == 'felony')) else 0, axis=1)
 
+    share_rearrested_felony = df_arrests['y'].mean()
+    print(f"The share of cuurent charges that are rearrestees is: {share_rearrested_felony}")
+
+    #create predicitve feature
+    df_arrests['current_charge_felony'] = df_arrests['charge_degree'].apply(lambda x: 1 if x == 'felony' else 0)
+
+    share_current_felonies = df_arrests['current_charge_felony'].mean()
+    print(f"The share of current charges that are felonies are: {share_current_felonies}")
+
+    #create predicitve feature #2
+    df_arrests['num_fel_arrests_last_year'] = df_arrests.apply(lambda row: ((df_arrests['person_id'] == row['person_id']) & (df_arrests['arrest_date_event'] < row['arrest_date_event']) & (df_arrests['arrest_date_event'] >= row['arrest_date_event'] - pd.Timedelta(days=365)) & (df_arrests['charge_degree'] == 'felony')).sum(), axis=1)
+
+    avg_fel_arrests_last_year = df_arrests['num_fel_arrests_last_year'].mean()
+    print(f"The average # of felony arrests in the last year is: {avg_fel_arrests_last_year}")
+
+    print(df_arrests.head())
+    df_arrests.to_csv('data/df_arrests.csv', index=False)
+
+if __name__ == "__main__":
+    preprocess()

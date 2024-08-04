@@ -16,30 +16,66 @@ Do both metrics agree that one model is more accurate than the other? Print this
 from sklearn.calibration import calibration_curve
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
+from sklearn.metrics import precision_score, roc_auc_score
 
-# Calibration plot function 
-def calibration_plot(y_true, y_prob, n_bins=10):
-    """
-    Create a calibration plot with a 45-degree dashed line.
+# Calibration plot function
+def calibration():
+     
+    def calibration_plot(y_true, y_prob, n_bins=10):
+        """
+        Create a calibration plot with a 45-degree dashed line.
 
-    Parameters:
-        y_true (array-like): True binary labels (0 or 1).
-        y_prob (array-like): Predicted probabilities for the positive class.
-        n_bins (int): Number of bins to divide the data for calibration.
+        Parameters:
+            y_true (array-like): True binary labels (0 or 1).
+            y_prob (array-like): Predicted probabilities for the positive class.
+            n_bins (int): Number of bins to divide the data for calibration.
 
-    Returns:
-        None
-    """
-    #Calculate calibration values
-    bin_means, prob_true = calibration_curve(y_true, y_prob, n_bins=n_bins)
+        Returns:
+            None
+        """
+        #Calculate calibration values
+        bin_means, prob_true = calibration_curve(y_true, y_prob, n_bins=n_bins)
+        
+        #Create the Seaborn plot
+        sns.set(style="whitegrid")
+        plt.plot([0, 1], [0, 1], "k--")
+        plt.plot(prob_true, bin_means, marker='o', label="Model")
+        
+        plt.xlabel("Mean Predicted Probability")
+        plt.ylabel("Fraction of Positives")
+        plt.title("Calibration Plot")
+        plt.legend(loc="best")
+        plt.show()
+        
+    #read in df
+    df_arrests_test = pd.read_csv('data/df_arrests_test_with_dt.csv')
+
+    # plot for lr model
+    calibration_plot(df_arrests_test['y'], df_arrests_test['pred_lr'], n_bins=5)
+
+    # plot for decision tree model
+    calibration_plot(df_arrests_test['y'], df_arrests_test['pred_dt'], n_bins=5)
+
+    print("The model that is more calibrated is the logistic regression ")
+
+    #PPV for lr model
+    top_50_lr = df_arrests_test.nlargest(50, 'pred_lr')
+    ppv_lr = precision_score(top_50_lr['y'], top_50_lr['pred_lr'])
+    print(ppv_lr)
+
+    #PPV for decision tree
+    top_50_dt = df_arrests_test.nlargest(50, 'pred_dt')
+    ppv_dt = precision_score(top_50_dt['y'], top_50_dt['pred_dt'])
+    print(ppv_dt)
+
+    #AUC for lr model
+    auc_lr = roc_auc_score(df_arrests_test['y'], df_arrests_test['pred_lr'])
+    print(auc_lr)
+        
+    #AUC decision tree model
+    auc_dt = roc_auc_score(df_arrests_test['y'], df_arrests_test['pred_dt'])
+    print(f"AUC for the decision tree model: {auc_dt}")
     
-    #Create the Seaborn plot
-    sns.set(style="whitegrid")
-    plt.plot([0, 1], [0, 1], "k--")
-    plt.plot(prob_true, bin_means, marker='o', label="Model")
-    
-    plt.xlabel("Mean Predicted Probability")
-    plt.ylabel("Fraction of Positives")
-    plt.title("Calibration Plot")
-    plt.legend(loc="best")
-    plt.show()
+if __name__ == "__main__":
+    calibration()

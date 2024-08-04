@@ -16,3 +16,39 @@ import numpy as np
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.model_selection import StratifiedKFold as KFold_strat
 from sklearn.tree import DecisionTreeClassifier as DTC
+
+def decision_tree():
+    df_arrests_train = pd.read_csv('data/df_arrests_train.csv')
+    df_arrests_test = pd.read_csv('data/df_arrests_test.csv')
+
+    # create a param grid
+    param_grid_dt = {'max_depth': [2.5, 5, 10]}
+
+    # initialize decision tree model
+    dt_model = DTC()
+
+    #initialize GridSearchCV
+    gridsearch_cv_dt = GridSearchCV(estimator=dt_model, param_grid=param_grid_dt, cv=5)
+    
+    #run model
+    gridsearch_cv_dt.fit(df_arrests_train[['current_charge_felony', 'num_fel_arrests_last_year']], df_arrests_train['y'])
+
+    optimal_max_depth = gridsearch_cv_dt.best_params_['max_depth']
+    print(f"The optimal max_depth value is {optimal_max_depth}")
+
+    if optimal_max_depth == 3:
+        regularization = "most"
+    elif optimal_max_depth == 10:
+        regularization = "least"
+    else:
+        regularization = "in the middle"
+
+    print(f"Max_depth had {regularization} regularization")
+
+    df_arrests_test['pred_dt'] = gridsearch_cv_dt.predict(df_arrests_test[['current_charge_felony', 'num_fel_arrests_last_year']])
+
+    df_arrests_train.to_csv('data/df_arrests_train_with_dt.csv', index=False)
+    df_arrests_test.to_csv('data/df_arrests_test_with_dt.csv', index=False)
+    
+if __name__ == "__main__":
+    decision_tree()

@@ -20,6 +20,42 @@ from sklearn.model_selection import StratifiedKFold as KFold_strat
 from sklearn.linear_model import LogisticRegression as lr
 
 
+def logistic_regression():
 # Your code here
+    df_arrests = pd.read_csv('data/df_arrests.csv')
+
+    # create two dfs from df_arrests
+    df_arrests_train, df_arrests_test = train_test_split(df_arrests, test_size=0.3, shuffle=True, stratify=df_arrests['y'])
+
+    # create features list
+    features = ['current_charge_felony', 'num_fel_arrests_last_year']
+
+    # create a param grid
+    param_grid = {'C': [0.01, 1, 100]}
 
 
+    lr_model = lr()
+
+    gridsearch_cv = GridSearchCV(estimator=lr_model, param_grid=param_grid, cv = 5)
+
+    gridsearch_cv.fit(df_arrests_train[features, df_arrests_train['y']])
+
+    optimal_C = gridsearch_cv.best_params_['C']
+    print(f"The optimal value for C was {optimal_C}")
+
+    if optimal_C == 0.01:
+        regularization = "most"
+    elif optimal_C == 100:
+        regularization = "least"
+    else:
+        regularization = "in the middle"
+
+    print(f"The regularization was {regularization}")
+
+    df_arrests_test['pred_lr'] = gridsearch_cv.predict(df_arrests_test[features])
+
+    df_arrests_train.to_csv('data/df_arrests_train.csv', index=False)
+    df_arrests_test.to_csv('data/df_arrests_test.csv', index=False)
+
+if __name__ == "__main__":
+    logistic_regression()
